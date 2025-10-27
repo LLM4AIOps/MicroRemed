@@ -1,0 +1,17 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-loss
+  namespace: [target_namespace]
+spec:
+  selector:
+    namespaces:
+      - [target_namespace]
+    labelSelectors:
+      app: [target_pod]
+  mode: one
+  action: loss
+  loss:
+    loss: "50"
+    correlation: "0"
+  direction: to

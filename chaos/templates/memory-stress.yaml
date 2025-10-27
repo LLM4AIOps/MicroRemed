@@ -1,0 +1,16 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: memory-stress
+  namespace: [target_namespace]
+spec:
+  selector:
+    namespaces:
+      - [target_namespace]
+    labelSelectors:
+      app: [target_pod]
+  mode: one
+  stressors:
+    memory:
+      workers: 1
+      size: "1280MiB"

@@ -1,0 +1,17 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: disk-io
+  namespace: [target_namespace]
+spec:
+  action: latency
+  mode: one
+  selector:
+    namespaces:
+      - [target_namespace]
+    labelSelectors:
+      app: [target_pod]
+  volumePath: /var/log/mysql
+  path: "/var/log/mysql/**/*"
+  delay: "5s"
+  percent: 50

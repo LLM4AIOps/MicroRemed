@@ -1,0 +1,15 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-fail
+  namespace: [target_namespace]
+spec:
+  selector:
+    namespaces:
+      - [target_namespace]
+    labelSelectors:
+      app: [target_pod]
+  mode: one
+  duration: '1200s'
+  action: pod-failure
+  gracePeriod: 0

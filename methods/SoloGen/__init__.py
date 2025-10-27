@@ -1,0 +1,1 @@
+# SoloGen — Direct Playbook Generation

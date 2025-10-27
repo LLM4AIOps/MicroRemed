@@ -1,0 +1,203 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: time-service
+  labels:
+    app: time-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: time-service
+  template:
+    metadata:
+      labels:
+        app: time-service
+    spec:
+      volumes:
+        - name: mysql-logs
+          emptyDir: {}
+      containers:
+        - name: time-service
+          image: python:3.9-slim
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5001
+          command: ["sh", "-c"]
+          args:
+            - |
+              cat > /app.py <<'PY'
+              from http.server import BaseHTTPRequestHandler, HTTPServer
+              import json, datetime
+              class Handler(BaseHTTPRequestHandler):
+                  def do_GET(self):
+                      if self.path == "/time":
+                          now = datetime.datetime.utcnow().isoformat() + "Z"
+                          self.send_response(200)
+                          self.send_header("Content-Type", "application/json")
+                          self.end_headers()
+                          self.wfile.write(json.dumps({"time": now}).encode("utf-8"))
+                      else:
+                          self.send_response(404)
+                          self.end_headers()
+              if __name__ == "__main__":
+                  server = HTTPServer(("0.0.0.0", 5001), Handler)
+                  server.serve_forever()
+              PY
+              python /app.py
+          volumeMounts:
+            - name: mysql-logs
+              mountPath: /var/log/mysql
+          readinessProbe:
+            httpGet:
+              path: /time
+              port: 5001
+            initialDelaySeconds: 1
+            periodSeconds: 2
+          # === Strict resources (requests == limits) to get Guaranteed QoS ===
+          resources:
+            requests:
+              cpu: 100m
+              memory: 300Mi
+            limits:
+              cpu: 500m
+              memory: 2000Mi
+        - name: sidecar-busybox
+          image: busybox:1.35
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "sleep 3600"]
+          securityContext:
+            capabilities:
+              add: ["NET_RAW"]
+          volumeMounts:
+            - name: mysql-logs
+              mountPath: /var/log/mysql
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "50m"
+              memory: "64Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: time-service
+spec:
+  selector:
+    app: time-service
+  ports:
+    - protocol: TCP
+      port: 5001
+      targetPort: 5001
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-service
+  labels:
+    app: hello-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-service
+  template:
+    metadata:
+      labels:
+        app: hello-service
+    spec:
+      volumes:
+        - name: mysql-logs
+          emptyDir: {}
+      containers:
+        - name: hello-service
+          image: python:3.9-slim
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          command: ["sh", "-c"]
+          args:
+            - |
+              cat > /app.py <<'PY'
+              from http.server import BaseHTTPRequestHandler, HTTPServer
+              import json, urllib.request
+              class Handler(BaseHTTPRequestHandler):
+                  def do_GET(self):
+                      if self.path == "/hello":
+                          try:
+                              with urllib.request.urlopen("http://time-service:5001/time", timeout=2) as resp:
+                                  data = json.load(resp)
+                                  out = {"msg": "Hello!", "time": data.get("time")}
+                                  self.send_response(200)
+                                  self.send_header("Content-Type", "application/json")
+                                  self.end_headers()
+                                  self.wfile.write(json.dumps(out).encode("utf-8"))
+                          except Exception as e:
+                              print(f"[ERROR] Failed to call time-service: {e}", flush=True)
+                              self.send_response(500)
+                              self.send_header("Content-Type", "application/json")
+                              self.end_headers()
+                              self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+                      elif self.path == "/healthz":
+                          self.send_response(200)
+                          self.end_headers()
+                          self.wfile.write(b"OK")
+                      else:
+                          self.send_response(404)
+                          self.end_headers()
+              if __name__ == "__main__":
+                  server = HTTPServer(("0.0.0.0", 5000), Handler)
+                  server.serve_forever()
+              PY
+              python /app.py
+          volumeMounts:
+            - name: mysql-logs
+              mountPath: /var/log/mysql
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 5000
+            initialDelaySeconds: 1
+            periodSeconds: 2
+          resources:
+            requests:
+              cpu: 100m
+              memory: 300Mi
+            limits:
+              cpu: 500m
+              memory: 2000Mi
+        - name: sidecar-busybox
+          image: busybox:1.35
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "sleep 3600"]
+          securityContext:
+            capabilities:
+              add: ["NET_RAW"]
+          volumeMounts:
+            - name: mysql-logs
+              mountPath: /var/log/mysql
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "50m"
+              memory: "64Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-service
+spec:
+  selector:
+    app: hello-service
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+      nodePort: 30080
+  type: NodePort

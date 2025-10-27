@@ -1,0 +1,16 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: cpu-stress
+  namespace: [target_namespace]
+spec:
+  selector:
+    namespaces:
+      - [target_namespace]
+    labelSelectors:
+      app: [target_pod]
+  mode: one
+  stressors:
+    cpu:
+      workers: 10
+      load: 100
