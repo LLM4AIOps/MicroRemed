@@ -1,10 +1,8 @@
 <div align="center">
 
-![MicroRemed Logo](assets/logo.png)
-
 # MicroRemed: Benchmarking LLMs in Microservices Remediation
 
-[![Paper](https://img.shields.io/badge/Paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/2508.07173)
+[![Paper](https://img.shields.io/badge/Paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/tbd)
 
 </div>
 
