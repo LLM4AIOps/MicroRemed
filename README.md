@@ -2,7 +2,7 @@
 
 # MicroRemed: Benchmarking LLMs in Microservices Remediation
 
-[![Paper](https://img.shields.io/badge/Paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/tbd)
+[![Paper](https://img.shields.io/badge/Paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](http://arxiv.org/abs/2511.01166)
 
 </div>
 
